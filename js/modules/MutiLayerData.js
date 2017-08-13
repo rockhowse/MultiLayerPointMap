@@ -49,10 +49,10 @@ initializeMultiLayerData  = function(scene, auto_start, start_map) {
 }
 
 var selected_starmap_index = 0; // current index of selected starmap
-var hist_star_maps = []; // holds more than one star map at a time
+var hist_point_maps = []; // holds more than one star map at a time
 
 // global star maps used for moving about
-var twitter_fall_star_map;
+var twitter_fall_point_map;
 
 // Uber container for multiple star maps used in flash crash borg
 var borg_container;
@@ -67,20 +67,20 @@ PointMapInfo = function(title, date, time, description) {
     this.description    = description;
 }
 
-PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offset, bar_data_offset, font_scale, star_map_info, min_threshold, hide_alpha, is_borg) {
-    this.star_map_height    = 0;
-    this.star_map_width     = 0;
+PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offset, bar_data_offset, font_scale, point_map_info, min_threshold, hide_alpha, is_borg) {
+    this.point_map_height    = 0;
+    this.point_map_width     = 0;
     this.num_particles      = 0;
     this.x_particle_size    = 16;
     this.y_particle_size    = this.x_particle_size/2; // overlap particle in the Y
     this.p_x_offset         = 0;
     this.p_y_offset         = 0;
-    this.hist_star_map      = null;
-    this.rotate_star_map    = false;
+    this.hist_point_map      = null;
+    this.rotate_point_map    = false;
     this.selectedDate       = selectedDate;
     this.bar_data_offset    = bar_data_offset;
     this.font_scale         = font_scale;
-    this.star_map_info      = star_map_info;
+    this.point_map_info      = point_map_info;
     this.min_threshold      = min_threshold;
     this.hide_alpha         = hide_alpha;
     this.is_borg            = is_borg;
@@ -122,53 +122,53 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
     }
 
 // load the data from the two javascript files then render!
-    this.buildMapFromMultiLayerData = function (scene, star_map_index) {
+    this.buildMapFromMultiLayerData = function (scene, point_map_index) {
 
         var data_loc = "./js_data/";
 
-        var cur_star_map = this;
+        var cur_point_map = this;
 
         // always show this...
         //if(enable_debug) {
-            //alert("height: " + star_map_height +  "width: " +star_map_width )
-            $('#ParticleCount').html("Loading: " + cur_star_map.star_map_info.title);
+            //alert("height: " + point_map_height +  "width: " +point_map_width )
+            $('#ParticleCount').html("Loading: " + cur_point_map.point_map_info.title);
         //}
 
         // not borg, clear it
         if(!this.is_borg) {
-            for(var i = 0; i < hist_star_maps.length; i++) {
-                scene.remove(hist_star_maps[i]);
+            for(var i = 0; i < hist_point_maps.length; i++) {
+                scene.remove(hist_point_maps[i]);
             }
 
-            hist_star_maps = [];
+            hist_point_maps = [];
         }
 
         $.getScript("js/modules/colors.js", function(){
-            $.getScript(data_loc + cur_star_map.selectedDate + "." + cur_star_map.file_type + ".js", function(){
-                $.getScript(data_loc + cur_star_map.selectedDate + "." + cur_star_map.file_type + ".s.f.js", function(){
-                    cur_star_map.star_map_height     = 0;
-                    cur_star_map.star_map_width      = 0;
-                    cur_star_map.num_particles       = 0;
-                    cur_star_map.point_cloud_data    = [];
+            $.getScript(data_loc + cur_point_map.selectedDate + "." + cur_point_map.file_type + ".js", function(){
+                $.getScript(data_loc + cur_point_map.selectedDate + "." + cur_point_map.file_type + ".s.f.js", function(){
+                    cur_point_map.point_map_height     = 0;
+                    cur_point_map.point_map_width      = 0;
+                    cur_point_map.num_particles       = 0;
+                    cur_point_map.point_cloud_data    = [];
 
                     // stop animating
-                    cur_star_map.rotate_star_map = false;
+                    cur_point_map.rotate_point_map = false;
 
                     // remove existing mesh
-                    //scene.remove(hist_star_map);
+                    //scene.remove(hist_point_map);
 
                     // load the data into 3D array
-                    addParticleMap(cur_star_map);
+                    addParticleMap(cur_point_map);
 
                     // render the scene
-                    cur_star_map.buildStarMap(scene);
+                    cur_point_map.buildStarMap(scene);
 
                     // don't draw if borg, borg will handle it
-                    if(!cur_star_map.is_borg) {
+                    if(!cur_point_map.is_borg) {
                         // wait 3 seconds then fly in, removes draw lag
                         setTimeout(function() {
                                 // kind of a hack to get it to work... the borg grid needs to happen for single starmaps too eventually
-                                flyToDay(cur_star_map.bar_data_offset, cur_star_map, 0, star_map_index);
+                                flyToDay(cur_point_map.bar_data_offset, cur_point_map, 0, point_map_index);
                         }, 5*1000);
                     }
                 });
@@ -223,27 +223,27 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
         }
 
         // figure out where the last index for each letter is
-        this.alpha_channel_labels[symbol_name.charAt(0)] = this.star_map_height;
+        this.alpha_channel_labels[symbol_name.charAt(0)] = this.point_map_height;
 
         // look up any markers and set their Y values if they match
         for(var i=0; i < this.marker_labels.length; i++) {
-            // if they match, set the Y to the value of the star_map_height
+            // if they match, set the Y to the value of the point_map_height
             if(symbol_name == this.marker_labels[i][0]){
-                this.marker_labels[i][3] = this.star_map_height*this.y_particle_size;
+                this.marker_labels[i][3] = this.point_map_height*this.y_particle_size;
             }
         }
 
         // second dimension
-        this.point_cloud_data[this.star_map_height++] = particleArray;
+        this.point_cloud_data[this.point_map_height++] = particleArray;
 
-        this.star_map_width = particles;
+        this.point_map_width = particles;
     }
 
     this.buildStarMap = function (scene) {
 
         // if debugging pop up the particle number
         if(enable_debug) {
-            //alert("height: " + star_map_height +  "width: " +star_map_width )
+            //alert("height: " + point_map_height +  "width: " +point_map_width )
             $('#ParticleCount').html("# Particles: " + this.num_particles);
         } else {
             // hide this if we aren't in debug
@@ -276,8 +276,8 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
         var pc_x = 0;
         var pc_y = 0;
         // move from 0,0
-        this.p_x_offset = this.star_map_width*this.x_particle_size/2;
-        this.p_y_offset = this.star_map_height*this.y_particle_size/2; // /4 because we are overlapping
+        this.p_x_offset = this.point_map_width*this.x_particle_size/2;
+        this.p_y_offset = this.point_map_height*this.y_particle_size/2; // /4 because we are overlapping
 
         for(var i =0; i < positions.length; i+=3){
             // get the max length of this row
@@ -316,34 +316,34 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
 
         // Flash Crash make it size 16 instead of original 4
         var material = new THREE.ParticleBasicMaterial( { size: this.x_particle_size*4, vertexColors: true } );
-        this.hist_star_map = new THREE.ParticleSystem( geometry, material );
+        this.hist_point_map = new THREE.ParticleSystem( geometry, material );
 
         // some of the graphs you want to hide the alpha channels
         if(!this.hide_alpha) {
             // add in alpha-channel lables
-            this.addAlphaChannelLabels(this.hist_star_map, this.font_scale, true);
+            this.addAlphaChannelLabels(this.hist_point_map, this.font_scale, true);
         }
 
         // add in time labels
-        this.addTimeLabels(this.hist_star_map, this.font_scale);
+        this.addTimeLabels(this.hist_point_map, this.font_scale);
 
         // add in marker labels
-        this.addMarkerLabels(this.hist_star_map, this.font_scale);
+        this.addMarkerLabels(this.hist_point_map, this.font_scale);
 
         // add in marker images
-        this.addMarkerImages(this.hist_star_map)
+        this.addMarkerImages(this.hist_point_map)
 
         // move this sucker back!
-        this.hist_star_map.position.z = particle_map_z_offset;
+        this.hist_point_map.position.z = particle_map_z_offset;
 
         // add it to the list of maps
-        scene.add(this.hist_star_map)
+        scene.add(this.hist_point_map)
     }
 
     var end_line_len = 500;
 
     this.addTimeLabels = function (three_obj, font_scale) {
-        this.time_increment = this.star_map_width/(this.time_labels.length-1);
+        this.time_increment = this.point_map_width/(this.time_labels.length-1);
 
         for(var i=0; i < this.time_labels.length;i++) {
             var offset = i*this.time_increment*this.x_particle_size;
@@ -599,8 +599,8 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
     }
 
     this.toggleRotation = function toggleRotation(){
-        //alert("moving starmap to: " + star_map_width  + ":" + star_map_height + ":" + max + "L" + new_z)
-        rotate_star_map = !rotate_star_map;
+        //alert("moving starmap to: " + point_map_width  + ":" + point_map_height + ":" + max + "L" + new_z)
+        rotate_point_map = !rotate_point_map;
 
         rotate_data_volume = !rotate_data_volume;
     }
@@ -610,20 +610,20 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
         var new_z = max*4;
 
         // stop animation
-        rotate_star_map = false;
+        rotate_point_map = false;
 
         var sec_per_sage = 1;
 
-        var cur_star_map = this.hist_star_map;
+        var cur_point_map = this.hist_point_map;
 
-        var tween = new TWEEN.Tween(cur_star_map.rotation).to({
+        var tween = new TWEEN.Tween(cur_point_map.rotation).to({
             z: Math.PI/2,
             x: -Math.PI/2.4
         }, sec_per_sage* 1000).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function () {
                 //camera.lookAt(sphere.position);
             }).onComplete(function () {
 
-                var tween = new TWEEN.Tween(cur_star_map.rotation).to({
+                var tween = new TWEEN.Tween(cur_point_map.rotation).to({
                     z: 0,
                     x: 0
                 }, sec_per_sage* 1000).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function () {
@@ -633,19 +633,19 @@ PointMap = function (scene, camera, selectedDate, file_type, particle_map_z_offs
                     }).start();
 
                 /*
-                var tween2 = new TWEEN.Tween(cur_star_map.position).to({
-                    z: cur_star_map.position.z+(this.p_x_offset*2)+new_z/2,
-                    y: cur_star_map.position.y-2000
+                var tween2 = new TWEEN.Tween(cur_point_map.position).to({
+                    z: cur_point_map.position.z+(this.p_x_offset*2)+new_z/2,
+                    y: cur_point_map.position.y-2000
                 }, sec_per_sage* 1000).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function () {
                         //camera.lookAt(sphere.position);
                     }).onComplete(function () {
-                        var tween = new TWEEN.Tween(cur_star_map.rotation).to({
+                        var tween = new TWEEN.Tween(cur_point_map.rotation).to({
                             z: -Math.PI/2
                         }, sec_per_sage* 1000).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function () {
                                 //camera.lookAt(sphere.position);
                             }).onComplete(function () {
-                                var tween2 = new TWEEN.Tween(cur_star_map.position).to({
-                                    z: cur_star_map.position.z-(cur_star_map.p_x_offset)*2
+                                var tween2 = new TWEEN.Tween(cur_point_map.position).to({
+                                    z: cur_point_map.position.z-(cur_point_map.p_x_offset)*2
                                 }, sec_per_sage* 1000).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function () {
                                         //camera.lookAt(sphere.position);
                                     }).onComplete(function () {
@@ -717,15 +717,15 @@ function loadFlashCrashStarMapGrid() {
         var is_borg = true;
 
         // only set the first one to "false" the rest to true so they don't clear out the array
-        if(i == 0){
+        if(flash_crash_array.length > 0 && i == 0){
             is_borg = false;
         }
 
         // PointMap(scene, camera, year, type, z-distance, position_in_graph, font_scale)
-        var  flash_crash_star_map_borg = new PointMap(borg_container, camera, flash_crash_array[i][0], flash_crash_array[i][3], -(5000*i), -3000, 2.0, flash_crash_array[i][1], 50, false, is_borg);
-        flash_crash_star_map_borg.time_increment = 180;
-        flash_crash_star_map_borg.marker_labels = flash_crash_array[i][2];
-        flash_crash_star_map_borg.time_labels =  [
+        var  flash_crash_point_map_borg = new PointMap(borg_container, camera, flash_crash_array[i][0], flash_crash_array[i][3], -(5000*i), -3000, 2.0, flash_crash_array[i][1], 50, false, is_borg);
+        flash_crash_point_map_borg.time_increment = 180;
+        flash_crash_point_map_borg.marker_labels = flash_crash_array[i][2];
+        flash_crash_point_map_borg.time_labels =  [
             ["9:30",0],
             ["10:00",0],
             ["11:00",0],
@@ -736,8 +736,8 @@ function loadFlashCrashStarMapGrid() {
             ["16:00",0]
         ];
 
-       flash_crash_star_map_borg.buildMapFromMultiLayerData(borg_container, 4);
-        hist_star_maps.push(flash_crash_star_map_borg);
+       flash_crash_point_map_borg.buildMapFromMultiLayerData(borg_container, 4);
+        hist_point_maps.push(flash_crash_point_map_borg);
     }
 
     borg_container.position.z = hide_plane_x-5000;
